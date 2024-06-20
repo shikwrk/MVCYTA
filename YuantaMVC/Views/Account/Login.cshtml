@@ -1,0 +1,111 @@
+﻿<form id="account" method="post" novalidate="novalidate">
+    <h2>登入</h2>
+    <hr>
+    <div class="form-floating mb-3">
+        <input class="form-control" autocomplete="username" aria-required="true" placeholder="Username" type="text" data-val="true" id="username" value="">
+        <label class="form-label" for="username">Username</label>
+        <span class="text-danger field-validation-valid" data-valmsg-for="Username" data-valmsg-replace="true"></span>
+    </div>
+    <div class="form-floating mb-3">
+        <input class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" type="password" data-val="true" id="password">
+        <label class="form-label" for="password">Password</label>
+        <span class="text-danger field-validation-valid" data-valmsg-for="password" data-valmsg-replace="true"></span>
+    </div>
+    <div>
+        <button id="login-form" type="button" class="w-100 btn btn-lg btn-primary" onclick="login()">登入</button>
+    </div>
+</form>
+<hr/>
+<div>
+    <button class="btn btn-lg btn-primary" onclick="setAdminAccount()">管理員帳號</button>
+    <button class="btn btn-lg btn-primary" onclick="setMemberAccount()">會員帳號</button>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        const token = getCookie('token');
+        // 獲取token中的資訊
+        if (token) {
+            const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+            const userRole = tokenPayload.role;
+        }
+    });
+
+    // 登入
+    async function login() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            const response = await fetch('/Account/Login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.token) {
+                    // 解析JWT 獲取資訊
+                    const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
+                    const userRole = tokenPayload.role;
+                    const userName = tokenPayload.unique_name;
+                    const id = tokenPayload.nameid;
+
+                    // 保存資訊到 Cookie
+                    // setCookie('token', data.token, 1);
+                    // setCookie('role', userRole, 1);
+                    // setCookie('username', userName, 1);
+
+                    console.log('Login successful');
+                    // 根據權限跳轉頁面
+                    if (userRole === 'Admin') {
+                        window.location.href = '/Log/Index';
+                    } else {
+                        window.location.href = '/Read/Index';
+                    }
+                } else {
+                    console.error('Login failed');
+                }
+            } else {
+                console.error('Login failed');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    // 設置cookie
+    function setCookie(name, value, days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        const expires = "expires=" + date.toUTCString();
+        document.cookie = name + "=" + value + ";" + expires + ";path=/";
+    }
+
+    // 獲得cookie
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    // 輸入管理員帳號
+    function setAdminAccount(){
+        const username = document.getElementById('username');
+        const password = document.getElementById('password');
+
+        username.value = 'testadmin';
+        password.value = 'password1';
+    }
+    // 輸入一般會員帳號
+    function setMemberAccount() {
+        const username = document.getElementById('username');
+        const password = document.getElementById('password');
+
+        username.value = 'testmember';
+        password.value = 'password2';
+    }
+</script>

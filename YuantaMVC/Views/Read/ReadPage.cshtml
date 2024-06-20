@@ -1,0 +1,169 @@
+﻿@model DocumentViewModel
+<h1>閱讀頁面</h1>
+<div id="document-container" data-document-id="1" data-start-time="">
+</div>
+<div class="d-flex justify-content-between">
+    <button id="previous-button" class="btn btn-lg btn-primary" style="visibility: hidden;">上一頁</button>
+    <button id="next-button" class="btn btn-lg btn-primary">下一頁</button>
+</div>
+
+<script>
+    let startTime;
+    document.addEventListener('DOMContentLoaded', () => {
+        startTime = getCurrentTime();
+
+        const role = getCookie('role');
+        if (!role) {
+            alert('您尚未登入，請先登入。');
+            window.location.href = '/account/login';
+        }
+
+        const nextButton = document.getElementById('next-button');
+        nextButton.addEventListener('click', async () => {
+            await getNextDocument();
+        });
+
+        const previousButton = document.getElementById('previous-button')
+        previousButton.addEventListener('click', async () => {
+            await goToPreviousPage();
+        });
+
+        document.getElementById('document-container').dataset.startTime = getCurrentTime();
+        getThisDocument();
+    });
+
+    // 離開頁面時紀錄閱讀時間
+    window.addEventListener('beforeunload', async (event) => {
+        await saveLog(parseInt(document.getElementById('document-container').dataset.documentId));
+    });
+
+    // 獲得Cookie中的資訊
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+    // 將時間轉換成UTC+8的格式
+    function getCurrentTime() {
+        const now = new Date();
+        const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const utc8Time = new Date(utcTime + (8 * 3600000));
+
+        const year = utc8Time.getFullYear();
+        const month = String(utc8Time.getMonth() + 1).padStart(2, '0');
+        const day = String(utc8Time.getDate()).padStart(2, '0');
+        const hours = String(utc8Time.getHours()).padStart(2, '0');
+        const minutes = String(utc8Time.getMinutes()).padStart(2, '0');
+        const seconds = String(utc8Time.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}Z`;
+    }
+
+    // 根據id獲得當前頁面資訊
+    async function getThisDocument() {
+        const documentId = parseInt(document.getElementById('document-container').dataset.documentId);
+        try {
+            const response = await fetch('/Read/GetDocument', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ documentId: documentId })
+            });
+
+            const html = await response.text();
+            document.getElementById('document-container').innerHTML = html;
+            updateButtons(documentId);
+
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    // 獲得下一頁資訊
+    async function getNextDocument() {
+        const documentId = parseInt(document.getElementById('document-container').dataset.documentId);
+        if (documentId < 6) {
+            try {
+                const response = await fetch('/Read/GetDocument', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ documentId: documentId + 1 })
+                });
+
+                const html = await response.text();
+                document.getElementById('document-container').innerHTML = html;
+                document.getElementById('document-container').dataset.documentId = documentId + 1;
+                await saveLog(documentId);
+
+                updateButtons(documentId + 1);
+
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    }
+
+    // 獲得前一頁資訊
+    async function goToPreviousPage() {
+        const documentId = parseInt(document.getElementById('document-container').dataset.documentId);
+        if (documentId > 1) {
+            try {
+                const response = await fetch('/Read/GetDocument', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ documentId: documentId - 1 })
+                });
+
+                const html = await response.text();
+                document.getElementById('document-container').innerHTML = html;
+                document.getElementById('document-container').dataset.documentId = documentId - 1;
+                await saveLog(documentId);
+
+                updateButtons(documentId - 1);
+
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    }
+
+    // 儲存閱讀紀錄
+    async function saveLog(documentId) {
+
+        const endTime = getCurrentTime();
+        try {
+            await fetch('/Read/SaveLog', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ documentId, startTime, endTime })
+            });
+            console.log('Reading log saved');
+            startTime = getCurrentTime();
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    // 根據頁數更新按鈕的顯示與隱藏
+    function updateButtons(documentId) {
+        const nextButton = document.getElementById('next-button');
+        const previousButton = document.getElementById('previous-button');
+
+        if (documentId === 1) {
+            previousButton.style.visibility = 'hidden';
+            nextButton.style.visibility = 'visible';
+        } else if (documentId >= 6) {
+            previousButton.style.visibility = 'visible';
+            nextButton.style.visibility = 'hidden';
+        } else {
+            previousButton.style.visibility = 'visible';
+            nextButton.style.visibility = 'visible';
+        }
+    }
+</script>
