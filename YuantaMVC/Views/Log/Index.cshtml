@@ -1,0 +1,89 @@
+﻿<h1 class="text-center">Log 查詢</h1>
+<div class="d-flex justify-content-center">
+    <form id="log-search-form" class="form-inline">
+        <input type="text" class="form-control" id="userId" name="userId" placeholder="User ID" required>
+        <hr />
+        <button type="submit" class="btn btn-primary">搜尋</button>
+        <button class="btn btn-primary" id="setOneBtn" onclick="setInputValue(1)">搜尋id為1的管理員紀錄</button>
+        <button class="btn btn-primary" id="setTwoBtn" onclick="setInputValue(2)">搜尋id為2的一般會員紀錄</button>
+    </form>
+
+
+</div>
+<div id="logs-container" class="d-flex justify-content-center mt-4"></div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 根據token中的資訊作驗證
+        const userRole = getCookie('role');
+        if (!userRole) {
+            alert('您尚未登入，請先登入。');
+            window.location.href = '/account/login';
+        } else if (userRole !== 'Admin') {
+            alert('您沒有權限進行Log查詢。');
+            window.location.href = '/home';
+        }
+
+        const searchForm = document.getElementById('log-search-form')
+        searchForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const userId = document.getElementById('userId').value;
+
+            try {
+                const response = await fetch(`@Url.Action("GetLogs", "Log")?userId=${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const logsContainer = document.getElementById('logs-container');
+                logsContainer.innerHTML = '';
+
+                // 根據查詢資訊動態生成列表
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.length > 0) {
+                        const table = document.createElement('table');
+                        table.classList.add('table');
+                        const header = document.createElement('tr');
+                        header.innerHTML = '<th>使用者ID</th><th>文件編號</th><th>閱讀起始時間</th><th>閱讀結束時間</th><th>Client IP</th>';
+                        table.appendChild(header);
+                        data.forEach(log => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                                        <td>${log.userId}</td>
+                                                        <td>${log.documentId}</td>
+                                                        <td>${log.startTime.replace('T', ' ')}</td>
+                                                        <td>${log.endTime.replace('T', ' ')}</td>
+                                                        <td>${log.clientIp}</td>
+                                                    `;
+                            table.appendChild(row);
+                        });
+                        logsContainer.appendChild(table);
+                    } else {
+                        logsContainer.innerHTML = '<p>No logs found</p>';
+                    }
+                } else {
+                    logsContainer.innerHTML = '<p>Error fetching logs</p>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('logs-container').innerHTML = '<p>Error fetching logs</p>';
+            }
+        });
+    });
+
+    function setInputValue(id) {
+        const btn = document.getElementById('userId');
+        btn.value = id;
+    }
+
+    // 獲得cookie中的資訊
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+</script>

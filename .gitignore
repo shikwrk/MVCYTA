@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/YuantaMVC/Properties/ServiceDependencies/mvcprj11 - Web Deploy/profile.arm.json
+/YuantaMVC/Properties/ServiceDependencies/mvcprj121 - Web Deploy/profile.arm.json
+/YuantaMVC/Properties/ServiceDependencies/mvcprj11 - Web Deploy3/profile.arm.json
