@@ -14,7 +14,7 @@ using YuantaMVC.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // db
-var connectionString = builder.Configuration.GetConnectionString("AzureDB") ?? throw new InvalidOperationException("Connection string 'AzureDB' not found.");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
